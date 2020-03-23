@@ -61,7 +61,7 @@ function drawCircle(context,entity) {
 
 function prepEntity(entity) {
     if (!entity["colour"]) {
-        entity["colour"] = "#FF0000";
+        entity["colour"] = "#CCEDFF"; //end point cirle
     }
     if (!entity["radius"]) {
         entity["radius"] = 50;
@@ -71,9 +71,15 @@ function prepEntity(entity) {
 
 function clearFrame() {
     with(context) {
-	moveTo(0,0);
-	fillStyle = "#000";
-	fillRect(0,0,W,H);
+    moveTo(0,0);
+    fillStyle = "#99B898"; 
+    fillRect(0,0,W/2,H/2);
+    fillStyle = "#FECEAB"; 
+    fillRect(W/2,H/2,W,H);
+    fillStyle = "#FF847C";
+    fillRect(0,H/2,W/2,H);
+    fillStyle = "#E84A5F"; 
+    fillRect(W/2,0,W,H/2);
     }
 
 }
@@ -123,8 +129,11 @@ function getPosition(e) {
 
 function addEntity(entity, data) {
     world[entity] = data;
+    socket.send(JSON.stringify({[entity]:data}));
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
+    
+
 }
 var counter = 0;
 function addEntityWithoutName(data) {
@@ -231,16 +240,16 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'white','radius':6}); //start point
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'white','radius':5}); //end point
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour':'#2A363B ', //middle line
+                          'radius':2});
 });
 
 
@@ -254,6 +263,15 @@ function wsSetup() {
     socket = new WebSocket(url);
     socket.onopen = function() {
         //XXX: TODO What are you going to do here?
+        //from A4
+        fetch(url)
+            .then((response) => {response.json()
+                .then((data) => {
+                    world = data; 
+                    drawNextFrame();
+                });
+            });
+        drawFrame();
     };
     socket.onerror = function(msg) {
         debug("WebSocket Error:" + msg.data);
@@ -261,7 +279,17 @@ function wsSetup() {
     socket.onmessage = function(msg) {  
         try {
             debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
+            //XXX: TODO What are you going to do here? 
+
+            // from A4 update function:
+            //  entry = self.space.get(entity,dict())
+            //  entry[key] = value
+            //  self.space[entity] = entry
+
+            var message = JSON.parse(msg.data)
+            let key = Object.entries(message)[0];
+            world[key[0]] = key[1];
+            drawNextFrame();
         } catch (e) {
             alert("socket on message: " + e);
         }
